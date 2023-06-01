@@ -1,0 +1,92 @@
+# Adapted from https://github.com/NVIDIA/triton-inference-server/blob/master/docs/examples/ensemble_model_repository/preprocess_resnet50_ensemble/config.pbtxt
+name: "yolov4"
+platform: "ensemble"
+max_batch_size: 8
+input [
+  {
+    name: "input"
+    data_type: TYPE_STRING
+    dims: [ 1 ]
+  }
+]
+output [
+  {
+    name: "output_bboxes_ensemble"
+    data_type: TYPE_FP32
+    dims: [ -1, 5 ]
+  },
+  {
+    name: "output_labels_ensemble"
+    data_type: TYPE_STRING
+    dims: [ -1 ]
+  }
+]
+ensemble_scheduling {
+  step [
+    {
+      model_name: "pre"
+      model_version: 1
+      input_map {
+        key: "input"
+        value: "input"
+      }
+      output_map {
+        key: "output"
+        value: "preprocessed_image"
+      }
+      output_map {
+        key: "output_orig_img_hw"
+        value: "orig_img_hw"
+      }
+    },
+    {
+      model_name: "yolov4-infer"
+      model_version: 1
+      input_map {
+        key: "input_1:0"
+        value: "preprocessed_image"
+      }
+      output_map {
+        key: "Identity:0"
+        value: "Identity:0"
+      }
+      output_map {
+        key: "Identity_1:0"
+        value: "Identity_1:0"
+      }
+      output_map {
+        key: "Identity_2:0"
+        value: "Identity_2:0"
+      }
+    },
+    {
+      model_name: "post"
+      model_version: 1
+      input_map {
+        key: "Identity:0"
+        value: "Identity:0"
+      }
+      input_map {
+        key: "Identity_1:0"
+        value: "Identity_1:0"
+      }
+      input_map {
+        key: "Identity_2:0"
+        value: "Identity_2:0"
+      }
+      input_map {
+        key: "input_orig_img_hw"
+        value: "orig_img_hw"
+      }
+      output_map {
+        key: "output_bboxes"
+        value: "output_bboxes_ensemble"
+      }
+      output_map {
+        key: "output_labels"
+        value: "output_labels_ensemble"
+      }
+    }
+  ]
+}
+version_policy: { all { }}
